@@ -9,4 +9,5 @@ dependencies = [
     "asyncpg>=0.31.0",
     "fastapi[all]>=0.136.0",
     "sqlalchemy[asyncio]>=2.0.49",
+    "ollama>=0.6.1"
 ]
