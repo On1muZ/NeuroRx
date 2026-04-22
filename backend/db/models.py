@@ -33,7 +33,7 @@ class Medication(Base):
     user_id = Column(UUID, ForeignKey("users.id"), nullable=False)
     name = Column(String(100), nullable=False)
     dosage = Column(String(50))
-    instructions = Column(String())
+    instructions = Column(String(), nullable=True)
     raw_ocr_data = Column(JSON)
 
     start_time = Column(DateTime, nullable=False)
