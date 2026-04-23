@@ -1,8 +1,8 @@
-from db.models import User
+from db.models import User, PushSubscription
 from sqlalchemy import delete, update, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from utils.crypto import get_password_hash
-from schemas.user import UserCreate
+from schemas.user import UserCreate, PushSubscriptionCreate
 from uuid import UUID
 
 
@@ -20,6 +20,21 @@ async def get_user_by_username(db: AsyncSession, username: str):
     result = await db.execute(query)
     user = result.scalar_one_or_none()
     return user
+
+
+async def save_push_subscription(db: AsyncSession, user_id: UUID, sub_data: PushSubscriptionCreate):
+    # Проверяем, есть ли уже этот браузер в базе
+    query = select(PushSubscription).where(PushSubscription.endpoint == sub_data.endpoint)
+    result = await db.execute(query)
+    if not result.scalar_one_or_none():
+        sub = PushSubscription(
+            user_id=user_id,
+            endpoint=sub_data.endpoint,
+            p256dh=sub_data.keys.p256dh,
+            auth=sub_data.keys.auth
+        )
+        db.add(sub)
+        await db.commit()
 
 
 async def change_user_password(db: AsyncSession, user_id: UUID, new_password: str):
@@ -40,3 +55,8 @@ async def get_user_by_id(db: AsyncSession, user_id: UUID):
     result = await db.execute(query)
     user = result.scalar_one_or_none()
     return user
+
+async def get_user_subscriptions(db: AsyncSession, user_id: UUID):
+    query = select(PushSubscription).where(PushSubscription.user_id == user_id)
+    result = await db.execute(query)
+    return result.scalars().all()

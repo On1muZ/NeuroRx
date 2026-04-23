@@ -15,3 +15,12 @@ class User(UserBase):
     id: UUID
     is_active: bool
     created_at: datetime
+
+
+class PushKeys(BaseModel):
+    p256dh: str
+    auth: str
+
+class PushSubscriptionCreate(BaseModel):
+    endpoint: str
+    keys: PushKeys

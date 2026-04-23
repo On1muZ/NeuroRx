@@ -3,15 +3,16 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from db.sessions import get_db
 from fastapi import Depends, APIRouter, HTTPException, status, Response
-from schemas.user import UserCreate, User
-from crud.user import create_user, get_user_by_username, delete_user as crud_delete_user
+from schemas.user import UserCreate, User, PushSubscriptionCreate
+from crud.user import create_user, get_user_by_username, delete_user as crud_delete_user, save_push_subscription
 from sqlalchemy.exc import IntegrityError
 from api.deps import get_current_user
 from utils.crypto import verify_password, create_access_token 
+from core.config import settings
 
 
 
-router = APIRouter(prefix="/users")
+router = APIRouter()
 
 
 @router.post("/signup")
@@ -62,6 +63,33 @@ async def logout_user(response: Response):
     response.delete_cookie(key="access_token", path="/")
     response.status_code = status.HTTP_204_NO_CONTENT
     return response
+
+
+@router.get("/vapid-public-key")
+async def get_vapid_public_key():
+    return {"public_key": settings.VAPID_PUBLIC_KEY}
+
+
+@router.post("/subscribe-push")
+async def subscribe_push(sub: PushSubscriptionCreate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    await save_push_subscription(db, current_user.id, sub)
+    return {"status": "success"}
+
+
+@router.post("/send-test-push")
+async def send_test_push(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    from services.scheduler import send_push_notification
+    from crud.user import get_user_subscriptions
+    
+    subs = await get_user_subscriptions(db, current_user.id)
+    if not subs:
+        throw_error = HTTPException(status_code=400, detail="У вас нет активных подписок. Нажмите на колокольчик в приложении.")
+        raise throw_error
+        
+    for sub in subs:
+        await send_push_notification(sub, "🚀 Тест уведомлений", "Если вы это видите, значит NeuroRx настроен верно!")
+    
+    return {"status": "success", "sent_to": len(subs)}
 
 
 @router.delete("/delete")

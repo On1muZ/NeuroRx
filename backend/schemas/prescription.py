@@ -1,6 +1,5 @@
-from datetime import date, datetime
+from datetime import datetime
 from pydantic import BaseModel
-from db.models import FrequencyType
 
 
 class MedicationBase(BaseModel):
