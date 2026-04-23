@@ -6,7 +6,7 @@ import os
 import uuid
 from api.deps import get_current_user
 from db.sessions import get_db
-from crud.prescription import create_medication
+from crud.prescription import create_medication, create_all_reminders
 from sqlalchemy.ext.asyncio import AsyncSession
 from schemas.prescription import MedicationCreate
 from datetime import timezone
@@ -55,21 +55,32 @@ async def create_prescription(
     db: AsyncSession = Depends(get_db)
 ): 
     try:
-        new_med = await create_medication(
+        # 1. Create the medication record
+        new_medication = await create_medication(
+            db=db,
             user_id=current_user.id,
             name=medication.name,
             dosage=medication.dosage,
-            instructions=medication.instructions,
-            raw_ocr_data=medication.raw_ocr_data,
-            start_time=medication.start_time.astimezone(timezone.utc).replace(tzinfo=None),
-            end_time=medication.end_time.astimezone(timezone.utc).replace(tzinfo=None) if medication.end_time else None,
-            frequency_type=medication.frequency_type,
-            schedule_pattern=medication.schedule_pattern,
-            reminder_times=medication.reminder_times,
-            db=db
+            instructions=medication.instructions
         )
-        return new_med
-        
+        reminders = await create_all_reminders(
+            db=db,
+            medication_id=new_medication.id,
+            start_time=medication.start_time,
+            end_time=medication.end_time,
+            nday=medication.nday,
+            times=medication.times
+        )
+
+        return {
+            "status": "success",
+            "medication_id": new_medication.id,
+            "reminders_created": len(reminders)
+        }
+
     except Exception as e:
-        print(f"Error creating prescription: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create prescription: {str(e)}"
+        )

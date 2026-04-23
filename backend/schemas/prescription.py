@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from pydantic import BaseModel
 from db.models import FrequencyType
 
@@ -7,12 +7,10 @@ class MedicationBase(BaseModel):
     name: str
     dosage: str
     instructions: str | None
-    raw_ocr_data: dict
     start_time: datetime
     end_time: datetime | None
-    frequency_type: FrequencyType
-    schedule_pattern: dict | None
-    reminder_times: list[datetime]
+    nday: int = 0
+    times: list[datetime]
 
 
 class MedicationCreate(MedicationBase):
