@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     VAPID_PRIVATE_KEY: str = "Fe0GHcQv4oPYcGkb5l3aKG1fdg3RNYb1NrhWGyuYkg0"
     VAPID_SUBJECT: str = "mailto:admin@neurorx.com"
 
+    # Настройки Ollama
+    OLLAMA_HOST: str = "http://localhost:11434"
+    OCR_MODEL: str = "llama3.2-vision:3b"
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
